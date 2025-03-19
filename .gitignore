@@ -1,0 +1,54 @@
+/node_modules
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# testing
+/coverage
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# env files (can opt-in for committing if needed)
+.env*
+
+# project
+_site
+.sass-cache
+.vagrant
+
+# general
+.DS_Store
+Thumbs.db
+ehthumbs.db
+
+#Gemfile.lock
+
+beautiful-jekyll-theme-*.gem
+
+.idea/*
+.idea/misc.xml
+.idea/modules.xml
+.idea/vcs.xml
+.idea/buildyourhome.iml
+
+*-cache/
+*.DS_Store
