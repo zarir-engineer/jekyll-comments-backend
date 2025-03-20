@@ -3,6 +3,7 @@ const fs = require("fs");
 const path = require("path");
 const cors = require("cors");
 const yaml = require("js-yaml"); // YAML support
+const { execSync } = require("child_process");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -42,69 +43,9 @@ app.get('/comments/:slug', async (req, res) => {
     res.json(comments);
 });
 
-// Get comments for a specific post (slug)
-//app.get("/comments/:slug", (req, res) => {
-//    const slug = req.params.slug;
-//    const filePath = path.join(commentsDir, `${slug}.yml`);
-//
-//    console.log(`Checking for file: ${filePath}`); // Add this line
-//
-//    if (!fs.existsSync(filePath)) {
-//        return res.json([]); // Return empty if no comments
-//    }
-//
-//    try {
-//        const fileContents = fs.readFileSync(filePath, "utf8");
-//        const comments = yaml.load(fileContents) || [];
-//        res.json(comments);
-//    } catch (err) {
-//        res.status(500).json({ error: "Failed to read comments" });
-//    }
-//});
-
-// Save a new comment to a YAML file
-//app.post("/comments", (req, res) => {
-//    const { name, email, comment, slug } = req.body;
-//    if (!name || !email || !comment || !slug) {
-//        return res.status(400).json({ error: "Missing required fields" });
-//    }
-//
-//    const filePath = path.join(commentsDir, `${slug}.yml`);
-//
-//    // Read existing comments (if any)
-//    let comments = [];
-//    if (fs.existsSync(filePath)) {
-//        try {
-//            const fileContents = fs.readFileSync(filePath, "utf8");
-//            comments = yaml.load(fileContents) || [];
-//        } catch (err) {
-//            return res.status(500).json({ error: "Failed to load comments" });
-//        }
-//    }
-//
-//    // Create new comment entry
-//    const newComment = {
-//        name,
-//        email,
-//        comment,
-//        date: new Date().toISOString().split("T")[0], // Format: YYYY-MM-DD
-//    };
-//
-//    comments.push(newComment);
-//
-//    // Save back to YAML
-//    try {
-//        fs.writeFileSync(filePath, yaml.dump(comments), "utf8");
-//        res.json({ success: true, comment: newComment });
-//    } catch (err) {
-//        res.status(500).json({ error: "Failed to save comment" });
-//    }
-//});
 
 app.post("/comments", (req, res) => {
     const { name, email, comment, slug } = req.body;
-
-    // Validate required fields
     if (!name || !email || !comment || !slug) {
         return res.status(400).json({ error: "Missing required fields" });
     }
@@ -112,14 +53,11 @@ app.post("/comments", (req, res) => {
     const filePath = path.join(commentsDir, `${slug}.yml`);
 
     let comments = [];
-
-    // Read existing comments if file exists
     if (fs.existsSync(filePath)) {
         try {
             const fileContents = fs.readFileSync(filePath, "utf8");
             comments = yaml.load(fileContents) || [];
         } catch (err) {
-            console.error("Error reading YAML file:", err);
             return res.status(500).json({ error: "Failed to load comments" });
         }
     }
@@ -129,7 +67,7 @@ app.post("/comments", (req, res) => {
         name,
         email,
         comment,
-        date: new Date().toISOString().split("T")[0], // Format: YYYY-MM-DD
+        date: new Date().toISOString().split("T")[0], // YYYY-MM-DD
     };
 
     comments.push(newComment);
@@ -137,10 +75,22 @@ app.post("/comments", (req, res) => {
     // Save back to YAML
     try {
         fs.writeFileSync(filePath, yaml.dump(comments), "utf8");
-        console.log(`New comment saved to ${filePath}`);
+
+        // 🚀 Commit & push the new comment to GitHub
+        try {
+            execSync(`
+                cd ${commentsDir} && \
+                git add ${filePath} && \
+                git commit -m "New comment on ${slug}" && \
+                git push origin gh-pages
+            `);
+            console.log("New comment committed & pushed to gh-pages");
+        } catch (gitError) {
+            console.error("Git push failed:", gitError);
+        }
+
         res.json({ success: true, comment: newComment });
     } catch (err) {
-        console.error("Error writing YAML file:", err);
         res.status(500).json({ error: "Failed to save comment" });
     }
 });
