@@ -18,6 +18,11 @@ if (!fs.existsSync(commentsDir)) {
     fs.mkdirSync(commentsDir, { recursive: true });
 }
 
+app.get("/", (req, res) => {
+    res.send("Jekyll Comments Backend is running.");
+});
+
+
 // Get comments for a specific post (slug)
 app.get("/comments/:slug", (req, res) => {
     const slug = req.params.slug;
