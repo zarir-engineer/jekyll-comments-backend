@@ -50,8 +50,6 @@ app.get('/comments/:slug', async (req, res) => {
     res.json(comments);
 });
 
-const { execSync } = require("child_process");
-
 app.post("/comments", (req, res) => {
     const { name, email, comment, slug } = req.body;
     if (!name || !email || !comment || !slug) {
