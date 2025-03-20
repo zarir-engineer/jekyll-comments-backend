@@ -11,8 +11,15 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json()); // Allow JSON parsing
 
+console.log("Current working directory:", __dirname);
+console.log("Full path to comments folder:", path.join(__dirname, "_data/comments"));
+
 // Path to Jekyll's `_data/comments/` folder
 const commentsDir = path.join(__dirname, "buildyourhome/_data/comments");
+const repoDir = "/app/buildyourhome/_data/comments"; // Adjust the path if needed
+
+console.log(" repoDir :", repoDir);
+console.log(" commentsDir :", commentsDir);
 
 // Ensure `_data/comments/` directory exists
 if (!fs.existsSync(commentsDir)) {
@@ -43,6 +50,7 @@ app.get('/comments/:slug', async (req, res) => {
     res.json(comments);
 });
 
+const { execSync } = require("child_process");
 
 app.post("/comments", (req, res) => {
     const { name, email, comment, slug } = req.body;
@@ -71,22 +79,26 @@ app.post("/comments", (req, res) => {
     };
 
     comments.push(newComment);
-    
+
     // Save back to YAML
     try {
         fs.writeFileSync(filePath, yaml.dump(comments), "utf8");
 
         // 🚀 Commit & push the new comment to GitHub
+
         try {
             execSync(`
-                cd ${commentsDir} && \
-                git add ${filePath} && \
-                git commit -m "New comment on ${slug}" && \
-                git push origin gh-pages
-            `);
-            console.log("New comment committed & pushed to gh-pages");
-        } catch (gitError) {
-            console.error("Git push failed:", gitError);
+                cd ${repoDir} &&
+                git config user.name "Railway Bot" &&
+                git config user.email "railway@users.noreply.github.com" &&
+                git add . &&
+                git commit -m "New comment update" &&
+                git push https://$GITHUB_ACCESS_TOKEN@github.com/zarirengineer/buildyourhome.git gh-pages
+            `, { stdio: "inherit", env: { ...process.env, GITHUB_ACCESS_TOKEN: process.env.GITHUB_ACCESS_TOKEN } });
+
+            console.log("✅ Successfully pushed changes to GitHub.");
+        } catch (error) {
+            console.error("❌ Git push failed:", error.message);
         }
 
         res.json({ success: true, comment: newComment });
@@ -94,5 +106,7 @@ app.post("/comments", (req, res) => {
         res.status(500).json({ error: "Failed to save comment" });
     }
 });
+
+
 // Start server
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
