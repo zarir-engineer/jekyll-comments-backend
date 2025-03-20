@@ -71,7 +71,6 @@ app.post("/comments", (req, res) => {
     };
 
     comments.push(newComment);
-
     // Save back to YAML
     try {
         fs.writeFileSync(filePath, yaml.dump(comments), "utf8");
