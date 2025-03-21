@@ -91,7 +91,7 @@ app.post("/comments", (req, res) => {
                 git config user.email "railway@users.noreply.github.com" &&
                 git add . &&
                 git commit -m "New comment update" &&
-                git push https://$GITHUB_ACCESS_TOKEN@github.com/zarirengineer/buildyourhome.git gh-pages
+                git push https://$GITHUB_ACCESS_TOKEN@github.com/zarir-engineer/buildyourhome.git gh-pages
             `, { stdio: "inherit", env: { ...process.env, GITHUB_ACCESS_TOKEN: process.env.GITHUB_ACCESS_TOKEN } });
 
             console.log("✅ Successfully pushed changes to GitHub.");
