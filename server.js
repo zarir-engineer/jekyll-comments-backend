@@ -16,10 +16,21 @@ console.log("Full path to comments folder:", path.join(__dirname, "_data/comment
 
 // Path to Jekyll's `_data/comments/` folder
 const commentsDir = path.join(__dirname, "buildyourhome/_data/comments");
-const repoDir = "/app/buildyourhome/_data/comments"; // Adjust the path if needed
+const repoDir = "/home/ubuntu/jekyll-comments-backend/buildyourhome";
+
 
 console.log(" repoDir :", repoDir);
 console.log(" commentsDir :", commentsDir);
+
+const GITHUB_ACCESS_TOKEN = process.env.GITHUB_ACCESS_TOKEN;
+
+if (!GITHUB_ACCESS_TOKEN) {
+    console.error("❌ GITHUB_ACCESS_TOKEN is not set!");
+    process.exit(1);
+}
+
+console.log("✅ GITHUB_ACCESS_TOKEN is set.");
+
 
 // Ensure `_data/comments/` directory exists
 if (!fs.existsSync(commentsDir)) {
@@ -86,11 +97,11 @@ app.post("/comments", (req, res) => {
 
         try {
             execSync(`
-                cd ${repoDir} &&
-                git config user.name "Railway Bot" &&
-                git config user.email "railway@users.noreply.github.com" &&
+                cd ${repoDir}/_data/comments &&
+                git config user.name "zarir-engineer" &&
+                git config user.email "zarir-engineer@users.noreply.github.com" &&
                 git add . &&
-                git commit -m "New comment update" &&
+                git diff --cached --exit-code || git commit -m "New comment update" &&
                 git push https://$GITHUB_ACCESS_TOKEN@github.com/zarir-engineer/buildyourhome.git gh-pages
             `, { stdio: "inherit", env: { ...process.env, GITHUB_ACCESS_TOKEN: process.env.GITHUB_ACCESS_TOKEN } });
 
@@ -107,4 +118,5 @@ app.post("/comments", (req, res) => {
 
 
 // Start server
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+app.listen(PORT, "0.0.0.0", () => console.log(`Server running on port ${PORT}`));
+
