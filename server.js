@@ -2,61 +2,66 @@ const express = require("express");
 const fs = require("fs");
 const path = require("path");
 const cors = require("cors");
-const yaml = require("js-yaml"); // YAML support
+const yaml = require("js-yaml");
 const { execSync } = require("child_process");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-app.use(cors());
-app.use(express.json()); // Allow JSON parsing
-
-console.log("Current working directory:", __dirname);
-console.log("Full path to comments folder:", path.join(__dirname, "_data/comments"));
-
-// Path to Jekyll's `_data/comments/` folder
-const commentsDir = path.join(__dirname, "buildyourhome/_data/comments");
-const repoDir = "/home/ubuntu/jekyll-comments-backend/buildyourhome";
-
-
-console.log(" repoDir :", repoDir);
-console.log(" commentsDir :", commentsDir);
-
+// Environment variables
 const GITHUB_ACCESS_TOKEN = process.env.GITHUB_ACCESS_TOKEN;
+const GIT_USER_NAME = process.env.GIT_USER_NAME;
+const GIT_USER_EMAIL = process.env.GIT_USER_EMAIL;
+const REPO_URL = process.env.REPO_URL;
+const BRANCH = process.env.BRANCH || "gh-pages";
 
-if (!GITHUB_ACCESS_TOKEN) {
-    console.error("❌ GITHUB_ACCESS_TOKEN is not set!");
+if (!GITHUB_ACCESS_TOKEN || !GIT_USER_NAME || !GIT_USER_EMAIL || !REPO_URL) {
+    console.error("❌ Missing required environment variables!");
     process.exit(1);
 }
 
-console.log("✅ GITHUB_ACCESS_TOKEN is set.");
+const repoDir = "/app/repo"; // Clone repo into this directory
+const commentsDir = path.join(repoDir, "_data/comments");
 
+// Clone repo on startup (if not already cloned)
+try {
+    if (!fs.existsSync(repoDir)) {
+        execSync(`git clone --depth=1 -b ${BRANCH} https://${GITHUB_ACCESS_TOKEN}@github.com/${REPO_URL.replace("https://github.com/", "")} ${repoDir}`, { stdio: "inherit" });
+        console.log("✅ Repository cloned successfully.");
+    }
+} catch (error) {
+    console.error("❌ Error cloning repository:", error.message);
+}
 
 // Ensure `_data/comments/` directory exists
 if (!fs.existsSync(commentsDir)) {
     fs.mkdirSync(commentsDir, { recursive: true });
 }
 
+app.use(cors());
+app.use(express.json());
+
+// Clone the repo on startup
+try {
+    execSync(`git clone --depth=1 -b ${BRANCH} https://${GITHUB_ACCESS_TOKEN}@github.com/${REPO_URL.replace("https://github.com/", "")} ${repoDir}`, { stdio: "inherit" });
+    console.log("✅ Repository cloned successfully.");
+} catch (error) {
+    console.error("❌ Error cloning repository:", error.message);
+}
+
 app.get("/", (req, res) => {
     res.send("Jekyll Comments Backend is running.");
 });
 
-
-
-app.get('/comments/:slug', async (req, res) => {
+app.get("/comments/:slug", async (req, res) => {
     const slug = req.params.slug;
-    const filePath = `_data/comments/${slug}.yml`;
-
-    console.log(`Checking for file: ${filePath}`); // Add this line
+    const filePath = path.join(commentsDir, `${slug}.yml`);
 
     if (!fs.existsSync(filePath)) {
-        console.log("File not found!");  // Log missing file
-        return res.json([]); // Return empty array if file doesn't exist
+        return res.json([]);
     }
 
-    const fileContent = fs.readFileSync(filePath, 'utf8');
-    console.log("File content:", fileContent); // Log file contents
-
+    const fileContent = fs.readFileSync(filePath, "utf8");
     const comments = yaml.load(fileContent) || [];
     res.json(comments);
 });
@@ -68,8 +73,8 @@ app.post("/comments", (req, res) => {
     }
 
     const filePath = path.join(commentsDir, `${slug}.yml`);
-
     let comments = [];
+
     if (fs.existsSync(filePath)) {
         try {
             const fileContents = fs.readFileSync(filePath, "utf8");
@@ -94,16 +99,15 @@ app.post("/comments", (req, res) => {
         fs.writeFileSync(filePath, yaml.dump(comments), "utf8");
 
         // 🚀 Commit & push the new comment to GitHub
-
         try {
             execSync(`
-                cd ${repoDir}/_data/comments &&
-                git config user.name "zarir-engineer" &&
-                git config user.email "zarir-engineer@users.noreply.github.com" &&
+                cd ${repoDir} &&
+                git config user.name "${GIT_USER_NAME}" &&
+                git config user.email "${GIT_USER_EMAIL}" &&
                 git add . &&
-                git diff --cached --exit-code || git commit -m "New comment update" &&
-                git push https://$GITHUB_ACCESS_TOKEN@github.com/zarir-engineer/buildyourhome.git gh-pages
-            `, { stdio: "inherit", env: { ...process.env, GITHUB_ACCESS_TOKEN: process.env.GITHUB_ACCESS_TOKEN } });
+                git commit -m "New comment update" &&
+                git push https://${GITHUB_ACCESS_TOKEN}@github.com/${REPO_URL.replace("https://github.com/", "")} ${BRANCH}
+            `, { stdio: "inherit" });
 
             console.log("✅ Successfully pushed changes to GitHub.");
         } catch (error) {
@@ -116,7 +120,5 @@ app.post("/comments", (req, res) => {
     }
 });
 
-
 // Start server
 app.listen(PORT, "0.0.0.0", () => console.log(`Server running on port ${PORT}`));
-
