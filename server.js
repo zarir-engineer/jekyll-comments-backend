@@ -83,7 +83,7 @@ app.post("/comments", (req, res) => {
             return res.status(500).json({ error: "Failed to load comments" });
         }
     }
-
+    console.log("+++ running till here")
     // Create new comment entry
     const newComment = {
         name,
