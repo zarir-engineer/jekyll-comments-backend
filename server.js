@@ -16,6 +16,7 @@ mongoose.connect(mongoURI)
 const commentSchema = new mongoose.Schema({
   name: String,
   comment: String,
+  slug: String,  // 🔥 Add this line
   timestamp: { type: Date, default: Date.now }
 });
 
