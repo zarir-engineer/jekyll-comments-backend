@@ -6,11 +6,11 @@ const PORT = process.env.PORT || 3000;
 
 // connect to mongodb
 const mongoose = require('mongoose');
-const mongoURI = process.env.MONGODB_URI || "your-fallback-uri";
+const mongoURI = process.env.MONGODB_URI || "mongodb://localhost:27017/test";
 
 mongoose.connect(mongoURI, { useNewUrlParser: true, useUnifiedTopology: true })
-  .then(() => console.log("MongoDB Connected"))
-  .catch(err => console.error("MongoDB Connection Error:", err));
+  .then(() => console.log("✅ MongoDB Connected"))
+  .catch(err => console.error("❌ MongoDB Connection Error:", err));
 
 const commentSchema = new mongoose.Schema({
   name: String,
@@ -19,6 +19,15 @@ const commentSchema = new mongoose.Schema({
 });
 
 const Comment = mongoose.model("Comment", commentSchema);
+
+const testComment = new Comment({
+    name: "Test User",
+    comment: "This is a test comment!"
+});
+
+testComment.save()
+    .then(() => console.log("✅ Test comment added!"))
+    .catch(err => console.error("❌ Error inserting test comment:", err));
 
 app.use(cors());
 app.use(express.json());
