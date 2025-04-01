@@ -16,7 +16,15 @@ mongoose.connect(mongoURI)
 const commentSchema = new mongoose.Schema({
   name: String,
   comment: String,
-  slug: String,  // 🔥 Add this line
+  slug: String,
+  parent_id: { type: mongoose.Schema.Types.ObjectId, default: null }, // Parent comment (if it's a reply)
+  replies: [
+    {
+      name: String,
+      comment: String,
+      timestamp: { type: Date, default: Date.now }
+    }
+  ],
   timestamp: { type: Date, default: Date.now }
 });
 
@@ -40,7 +48,7 @@ app.get("/", (req, res) => {
 
 app.get("/comments/:slug", async (req, res) => {
     try {
-        const comments = await Comment.find({ slug: req.params.slug });
+        const comments = await Comment.find({ slug: req.params.slug }).lean();
         res.json(comments);
     } catch (err) {
         res.status(500).json({ error: "Failed to load comments" });
@@ -66,6 +74,33 @@ app.post("/comments", async (req, res) => {
         res.status(500).json({ error: "Failed to save comment" });
     }
 });
+
+
+app.post("/comments/reply", async (req, res) => {
+    console.log('+++ req body ', req.body);
+
+    const { name, comment, parent_id } = req.body;
+    if (!name || !comment || !parent_id) {
+        return res.status(400).json({ error: "Missing required fields" });
+    }
+
+    try {
+        const parentComment = await Comment.findById(parent_id);
+        if (!parentComment) {
+            return res.status(404).json({ error: "Parent comment not found" });
+        }
+
+        // Add reply to the replies array
+        parentComment.replies.push({ name, comment });
+        await parentComment.save();
+
+        res.json({ success: true, reply: parentComment.replies[parentComment.replies.length - 1] });
+    } catch (err) {
+        console.error("Error saving reply:", err);
+        res.status(500).json({ error: "Failed to save reply" });
+    }
+});
+
 
 // Start server
 app.listen(PORT, "0.0.0.0", () => console.log(`Server running on port ${PORT}`));
