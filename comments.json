@@ -5,7 +5,8 @@
       "name": "Test User",
       "email": "test@example.com",
       "comment": "This is a test comment",
-      "date": "2025-03-19T13:01:04.930Z"
+      "date": "2025-03-19T13:01:04.930Z",
+      "slug": "2025-02-12-repurposing-old-window-frames-slug"
     }
   ]
 }
